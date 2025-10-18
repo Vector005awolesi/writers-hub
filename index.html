@@ -784,95 +784,107 @@
 
     <script>
       // init AOS
-      AOS.init({ once: true, duration: 850, offset: 120 });
+ AOS.init({ once: true, duration: 850, offset: 120 });
 
-      // smooth scroll for internal links
-      (function ($) {
-        $('a[href^="#"]').on("click", function (e) {
-          var target = $(this.getAttribute("href"));
-          if (target.length) {
-            e.preventDefault();
-            $("html, body")
-              .stop()
-              .animate({ scrollTop: target.offset().top - 30 }, 600);
-          }
-        });
-      })(jQuery);
+// smooth scroll for internal links
+(function ($) {
+  $('a[href^="#"]').on("click", function (e) {
+    var target = $(this.getAttribute("href"));
+    if (target.length) {
+      e.preventDefault();
+      $("html, body")
+        .stop()
+        .animate({ scrollTop: target.offset().top - 30 }, 600);
+    }
+  });
+})(jQuery);
 
-      // simple client-side validation + checks
-      (function ($) {
-        const maxVideoBytes = 50 * 1024 * 1024; // 50MB
+// client-side validation + real Netlify form submission
+(function ($) {
+  const maxVideoBytes = 50 * 1024 * 1024; // 50MB
 
-        $("#entryForm").on("submit", function (e) {
-          e.preventDefault();
-          $("#formStatus").text("");
-          let valid = true;
+  $("#entryForm").on("submit", function (e) {
+    e.preventDefault();
+    $("#formStatus").text("");
+    let valid = true;
 
-          // values
-          const name = $("#name").val().trim();
-          const age = parseInt($("#age").val(), 10);
-          const email = $("#email").val().trim();
-          const videoEl = $("#video")[0];
-          const videoFile = videoEl.files && videoEl.files[0];
+    // values
+    const name = $("#name").val().trim();
+    const age = parseInt($("#age").val(), 10);
+    const email = $("#email").val().trim();
+    const videoEl = $("#video")[0];
+    const videoFile = videoEl.files && videoEl.files[0];
 
-          // reset invalid states
-          $("#name,#age,#email,#video").removeClass("is-invalid");
+    // reset invalid states
+    $("#name,#age,#email,#video").removeClass("is-invalid");
 
-          if (!name) {
-            valid = false;
-            $("#name").addClass("is-invalid");
-          }
-          if (!email || !/^\S+@\S+\.\S+$/.test(email)) {
-            valid = false;
-            $("#email").addClass("is-invalid");
-          }
-          if (isNaN(age) || age < 15 || age > 25) {
-            valid = false;
-            $("#age").addClass("is-invalid");
-          }
+    if (!name) {
+      valid = false;
+      $("#name").addClass("is-invalid");
+    }
+    if (!email || !/^\S+@\S+\.\S+$/.test(email)) {
+      valid = false;
+      $("#email").addClass("is-invalid");
+    }
+    if (isNaN(age) || age < 15 || age > 25) {
+      valid = false;
+      $("#age").addClass("is-invalid");
+    }
 
-          if (!videoFile) {
-            valid = false;
-            $("#video").addClass("is-invalid");
-            $("#formStatus").text("Please upload your 1-minute intro video.");
-          } else {
-            const allowed = ["video/mp4", "video/webm"];
-            if (allowed.indexOf(videoFile.type) === -1) {
-              valid = false;
-              $("#video").addClass("is-invalid");
-              $("#formStatus").text("Video must be mp4 or webm.");
-            } else if (videoFile.size > maxVideoBytes) {
-              valid = false;
-              $("#video").addClass("is-invalid");
-              $("#formStatus").text("Video exceeds 50MB limit.");
-            }
-          }
+    if (!videoFile) {
+      valid = false;
+      $("#video").addClass("is-invalid");
+      $("#formStatus").text("Please upload your 1-minute intro video.");
+    } else {
+      const allowed = ["video/mp4", "video/webm"];
+      if (allowed.indexOf(videoFile.type) === -1) {
+        valid = false;
+        $("#video").addClass("is-invalid");
+        $("#formStatus").text("Video must be mp4 or webm.");
+      } else if (videoFile.size > maxVideoBytes) {
+        valid = false;
+        $("#video").addClass("is-invalid");
+        $("#formStatus").text("Video exceeds 50MB limit.");
+      }
+    }
 
-          if (!valid) {
-            if (!$("#formStatus").text())
-              $("#formStatus").text(
-                "Please fix the highlighted fields and try again."
-              );
-            return;
-          }
+    if (!valid) {
+      if (!$("#formStatus").text())
+        $("#formStatus").text(
+          "Please fix the highlighted fields and try again."
+        );
+      return;
+    }
 
-          // simulate submit (frontend demo)
-          $("#submitBtn").prop("disabled", true).text("Submitting...");
-          $("#formStatus").text("Uploading (simulation)...");
+    // ✅ build FormData for Netlify submission
+    const formData = new FormData(this);
+    formData.append("form-name", "entryForm");
 
-          setTimeout(function () {
-            $("#submitBtn").prop("disabled", false).text("Submit Entry");
-            $("#formStatus").html(
-              "Thanks! Your entry is received for pre-qualification. Qualified entrants will receive payment instructions. <br><strong>Deadline:</strong> Oct 20, 2025."
-            );
-            $("#entryForm")[0].reset();
-            $("html,body").animate(
-              { scrollTop: $("#join").offset().top - 30 },
-              500
-            );
-          }, 1400);
-        });
-      })(jQuery);
+    $("#submitBtn").prop("disabled", true).text("Submitting...");
+    $("#formStatus").text("Uploading...");
+
+    fetch("/", {
+      method: "POST",
+      body: formData,
+    })
+      .then(() => {
+        $("#submitBtn").prop("disabled", false).text("Submit Entry");
+        $("#formStatus").html(
+          "✅ Thanks! Your entry was received. Qualified entrants will receive payment instructions. <br><strong>Deadline:</strong> Oct 20, 2025."
+        );
+        $("#entryForm")[0].reset();
+        $("html,body").animate(
+          { scrollTop: $("#join").offset().top - 30 },
+          500
+        );
+      })
+      .catch(() => {
+        $("#submitBtn").prop("disabled", false).text("Submit Entry");
+        $("#formStatus").text("❌ Submission failed. Please try again.");
+      });
+  });
+})(jQuery);
+
     </script>
   </body>
 </html>
